@@ -1,0 +1,45 @@
+name: Text to speech
+
+on:
+  workflow_dispatch:
+    inputs:
+      language:
+        required: true
+        type: choice
+        description: Choose a language
+        options:
+        - en-US
+        - en-GB
+        - de-DE
+        - es-ES
+        - fr-FR
+        - it-IT
+      filename:
+        required: true
+        description: Set filename (without extension)
+      text:
+        required: true
+        description: Text to speech
+jobs:
+  text-to-speech:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Login to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.repository_owner }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Run 
+      run: >
+        docker run --rm
+        -v ${{ github.workspace }}/output:/workdir
+        ghcr.io/amitie10g/picotts:latest
+        -l $(echo "${{ github.event.inputs.language }}" | tr -d '/\0\t\n' | cut -c 1-5)
+        -w $(echo "${{ github.event.inputs.filename }}" | tr -d '/\0\t\n' | cut -c 1-255).wav
+        "$(echo "${{ github.event.inputs.text }}" | tr -d '/\0\t\n')"
+    - name: Upload to Artifcts
+      uses: actions/upload-artifact@v4
+      with:
+        name: Speech text
+        path: ${{ github.workspace }}/output/*
